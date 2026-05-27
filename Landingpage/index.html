@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emanoel — Next-Gen Character Artist</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Bebas Neue', 'sans-serif'],
+            body: ['DM Sans', 'sans-serif'],
+            mono: ['DM Mono', 'monospace'],
+          },
+          colors: {
+            bone: '#F2EDE4',
+            ink: '#0D0D0D',
+            rust: '#C94A2D',
+            'rust-light': '#E8A08E',
+            'ink-muted': '#555550',
+            'bone-dark': '#D9D3C8',
+          },
+          animation: {
+            'fade-up': 'fadeUp 0.7s ease forwards',
+            'slide-in': 'slideIn 0.6s ease forwards',
+            'count-up': 'countUp 1s ease forwards',
+          },
+          keyframes: {
+            fadeUp: {
+              '0%': { opacity: '0', transform: 'translateY(24px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            slideIn: {
+              '0%': { opacity: '0', transform: 'translateX(-20px)' },
+              '100%': { opacity: '1', transform: 'translateX(0)' },
+            },
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: #0D0D0D;
+      color: #F2EDE4;
+      font-family: 'DM Sans', sans-serif;
+      overflow-x: hidden;
+    }
+
+    .font-display { font-family: 'Bebas Neue', sans-serif; }
+    .font-mono-custom { font-family: 'DM Mono', monospace; }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #0D0D0D; }
+    ::-webkit-scrollbar-thumb { background: #C94A2D; border-radius: 2px; }
+
+    /* Noise overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.6;
+    }
+
+    .hero-bg {
+      background: radial-gradient(ellipse 80% 60% at 60% 40%, rgba(201,74,45,0.12) 0%, transparent 70%),
+                  radial-gradient(ellipse 50% 40% at 10% 80%, rgba(201,74,45,0.06) 0%, transparent 60%);
+    }
+
+    .grid-bg {
+      background-image: 
+        linear-gradient(rgba(242,237,228,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(242,237,228,0.03) 1px, transparent 1px);
+      background-size: 80px 80px;
+    }
+
+    .stat-card {
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #C94A2D, transparent);
+    }
+
+    .skill-bar {
+      position: relative;
+      height: 2px;
+      background: rgba(242,237,228,0.1);
+      overflow: hidden;
+    }
+    .skill-bar-fill {
+      height: 100%;
+      background: #C94A2D;
+      transform-origin: left;
+      transform: scaleX(0);
+      transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .portfolio-card {
+      position: relative;
+      overflow: hidden;
+      background: #111;
+      border: 1px solid rgba(242,237,228,0.06);
+      transition: border-color 0.3s ease, transform 0.3s ease;
+    }
+    .portfolio-card:hover {
+      border-color: rgba(201,74,45,0.4);
+      transform: translateY(-4px);
+    }
+    .portfolio-card .overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgba(13,13,13,0.95) 0%, rgba(13,13,13,0.2) 60%, transparent 100%);
+    }
+
+    .tool-chip {
+      border: 1px solid rgba(242,237,228,0.12);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .tool-chip:hover {
+      border-color: rgba(201,74,45,0.5);
+      background: rgba(201,74,45,0.06);
+    }
+
+    .nav-link {
+      position: relative;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(242,237,228,0.5);
+      transition: color 0.2s;
+    }
+    .nav-link::after {
+      content: '';
+      position: absolute;
+      bottom: -2px; left: 0; right: 0;
+      height: 1px;
+      background: #C94A2D;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+    .nav-link:hover { color: #F2EDE4; }
+    .nav-link:hover::after { transform: scaleX(1); }
+
+    .cta-btn {
+      position: relative;
+      overflow: hidden;
+      transition: color 0.3s;
+    }
+    .cta-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: #C94A2D;
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .cta-btn:hover::before { transform: translateX(0); }
+    .cta-btn:hover { color: #F2EDE4; }
+    .cta-btn span { position: relative; z-index: 1; }
+
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #C94A2D;
+    }
+
+    .pipeline-step {
+      border: 1px solid rgba(242,237,228,0.08);
+      transition: border-color 0.3s, background 0.3s;
+    }
+    .pipeline-step:hover {
+      border-color: rgba(201,74,45,0.35);
+      background: rgba(201,74,45,0.04);
+    }
+
+    /* Reveal animations */
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .text-rust { color: #C94A2D; }
+    .border-rust { border-color: #C94A2D; }
+    .bg-rust { background-color: #C94A2D; }
+
+    .contact-link {
+      border-bottom: 1px solid rgba(242,237,228,0.2);
+      transition: border-color 0.2s, color 0.2s;
+      padding-bottom: 2px;
+    }
+    .contact-link:hover {
+      border-color: #C94A2D;
+      color: #C94A2D;
+    }
+
+    /* Hero background upload box */
+    .hero-bg-upload {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .hero-bg-upload img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      opacity: 0.22;
+    }
+    .hero-bg-upload-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      border: 1px dashed rgba(242,237,228,0.1);
+      cursor: pointer;
+      transition: border-color 0.3s, background 0.3s;
+    }
+    .hero-bg-upload-placeholder:hover {
+      border-color: rgba(201,74,45,0.4);
+      background: rgba(201,74,45,0.03);
+    }
+    .hero-bg-upload-placeholder.drag-over {
+      border-color: #C94A2D;
+      background: rgba(201,74,45,0.06);
+    }
+    .hero-upload-btn {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      z-index: 10;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      background: rgba(13,13,13,0.85);
+      border: 1px solid rgba(242,237,228,0.15);
+      color: rgba(242,237,228,0.5);
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      backdrop-filter: blur(8px);
+    }
+    .hero-upload-btn:hover {
+      border-color: #C94A2D;
+      color: #C94A2D;
+    }
+
+    /* About photo box */
+    .about-photo-box {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3/4;
+      border: 1px dashed rgba(242,237,228,0.12);
+      overflow: hidden;
+      cursor: pointer;
+      transition: border-color 0.3s;
+    }
+    .about-photo-box:hover { border-color: rgba(201,74,45,0.4); }
+    .about-photo-box.drag-over { border-color: #C94A2D; background: rgba(201,74,45,0.04); }
+    .about-photo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      display: block;
+    }
+    .about-photo-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .about-photo-corner {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-color: #C94A2D;
+      border-style: solid;
+      opacity: 0.6;
+    }
+    .about-photo-corner.tl { top: 10px; left: 10px; border-width: 1px 0 0 1px; }
+    .about-photo-corner.tr { top: 10px; right: 10px; border-width: 1px 1px 0 0; }
+    .about-photo-corner.bl { bottom: 10px; left: 10px; border-width: 0 0 1px 1px; }
+    .about-photo-corner.br { bottom: 10px; right: 10px; border-width: 0 1px 1px 0; }
+    .about-photo-edit-btn {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      background: rgba(13,13,13,0.85);
+      border: 1px solid rgba(242,237,228,0.15);
+      color: rgba(242,237,228,0.5);
+      padding: 5px 10px;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: border-color 0.2s, color 0.2s;
+      display: none;
+    }
+    .about-photo-box:hover .about-photo-edit-btn { display: block; }
+    .about-photo-edit-btn:hover { border-color: #C94A2D; color: #C94A2D; }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav id="navbar" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" style="padding: 28px 0;">
+    <div class="max-w-7xl mx-auto px-8 flex items-center justify-between">
+      <a href="#" class="font-display text-2xl tracking-wider text-[#F2EDE4]">EMANOEL</a>
+      <div class="hidden md:flex items-center gap-10">
+        <a href="#about" class="nav-link">About</a>
+        <a href="#portfolio" class="nav-link">Work</a>
+        <a href="#pipeline" class="nav-link">Pipeline</a>
+        <a href="#tools" class="nav-link">Tools</a>
+        <a href="#contact" class="nav-link">Contact</a>
+      </div>
+      <a href="#contact" class="hidden md:block font-mono-custom text-xs tracking-widest uppercase border border-[#C94A2D] text-[#C94A2D] px-5 py-2 cta-btn">
+        <span>Hire Me</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="grid-bg relative min-h-screen flex items-center overflow-hidden" style="padding-top: 100px;">
+
+    <!-- Background image -->
+    <div class="hero-bg-upload">
+      <img src="assets/sukuna.jpg" alt="Background" style="display:block;" />
+      <div style="position:absolute;inset:0;background:linear-gradient(to right, rgba(13,13,13,0.88) 45%, rgba(13,13,13,0.55) 100%);"></div>
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 60% 40%, rgba(201,74,45,0.1) 0%, transparent 70%);"></div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-8 w-full py-20" style="position:relative;z-index:1;">
+      <div class="grid md:grid-cols-2 gap-16 items-center">
+        <div>
+          <p class="section-label mb-6">Next-Gen Character Artist</p>
+          <h1 class="font-display leading-none mb-8" style="font-size: clamp(72px, 10vw, 140px); line-height: 0.9;">
+            CREATING<br/>
+            <span class="text-rust">WORLDS</span><br/>
+            THROUGH<br/>
+            CHARACTERS
+          </h1>
+          <p class="text-[rgba(242,237,228,0.6)] text-lg mb-10 max-w-md leading-relaxed" style="font-weight: 300;">
+            From sculpt to gameplay — crafting AAA-quality characters that feel alive beyond the screen.
+          </p>
+          <div class="flex items-center gap-6">
+            <a href="#portfolio" class="inline-flex items-center gap-3 bg-[#C94A2D] text-[#F2EDE4] font-mono-custom text-xs tracking-widest uppercase px-8 py-4 hover:bg-[#B03D22] transition-colors">
+              View Portfolio
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a href="#pipeline" class="font-mono-custom text-xs tracking-widest uppercase text-[rgba(242,237,228,0.5)] hover:text-[#F2EDE4] transition-colors">
+              Explore Projects ↓
+            </a>
+          </div>
+        </div>
+        
+        <!-- Stats -->
+        <div class="grid grid-cols-3 gap-px" style="background:rgba(242,237,228,0.06);">
+          <div class="stat-card p-8 text-center" style="background:rgba(13,13,13,0.7);backdrop-filter:blur(12px);">
+            <p class="font-display text-6xl text-rust mb-2">8+</p>
+            <p class="font-mono-custom text-xs tracking-widest uppercase text-[rgba(242,237,228,0.4)]">Years<br/>Experience</p>
+          </div>
+          <div class="stat-card p-8 text-center" style="background:rgba(13,13,13,0.7);backdrop-filter:blur(12px);">
+            <p class="font-display text-6xl text-rust mb-2">50+</p>
+            <p class="font-mono-custom text-xs tracking-widest uppercase text-[rgba(242,237,228,0.4)]">Character<br/>Models</p>
+          </div>
+          <div class="stat-card p-8 text-center" style="background:rgba(13,13,13,0.7);backdrop-filter:blur(12px);">
+            <p class="font-display text-6xl text-rust mb-2">15+</p>
+            <p class="font-mono-custom text-xs tracking-widest uppercase text-[rgba(242,237,228,0.4)]">Shipped<br/>Titles</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scroll indicator -->
+      <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+        <p class="font-mono-custom text-xs tracking-widest uppercase text-[rgba(242,237,228,0.3)]">Scroll</p>
+        <div style="width:1px; height:40px; background: linear-gradient(to bottom, rgba(201,74,45,0.8), transparent);"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about" class="py-32 relative">
+    <div class="max-w-7xl mx-auto px-8">
+      <div class="grid md:grid-cols-12 gap-12 items-start">
+
+        <!-- Photo box -->
+        <div class="md:col-span-4 reveal">
+          <div class="about-photo-box" style="cursor:default;">
+            <img src="assets/emanoel.jpeg" alt="Emanoel — Lead Character Artist" style="display:block;" />
+            <div class="about-photo-corner tl"></div>
+            <div class="about-photo-corner tr"></div>
+            <div class="about-photo-corner bl"></div>
+            <div class="about-photo-corner br"></div>
+          </div>
+          <!-- Name tag below photo -->
+          <div class="mt-4 flex items-center justify-between">
+            <div>
+              <p class="font-mono-custom text-xs tracking-widest uppercase text-[rgba(242,237,228,0.3)]">Lead Character Artist</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="w-1.5 h-1.5 rounded-full bg-[#4CAF50]"></div>
+              <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)]">Available</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Text content -->
+        <div class="md:col-span-4 reveal" style="transition-delay:0.1s;">
+          <p class="section-label mb-6">/ About</p>
+          <h2 class="font-display leading-none mb-8" style="font-size: clamp(42px, 5vw, 76px); line-height: 0.9;">
+            CREATING<br/>
+            CHARACTERS<br/>
+            <span class="text-rust">THAT FEEL<br/>ALIVE</span>
+          </h2>
+        </div>
+
+        <div class="md:col-span-4 reveal" style="transition-delay: 0.2s;">
+          <blockquote class="border-l-2 border-rust pl-6 mb-10">
+            <p class="text-[rgba(242,237,228,0.7)] text-lg italic leading-relaxed" style="font-weight: 300;">
+              "From sculpt to gameplay — every character tells a story beyond the screen."
+            </p>
+          </blockquote>
+          <p class="text-[rgba(242,237,228,0.6)] leading-relaxed mb-6">
+            Specialized in next-generation character development for AAA games and real-time experiences. Combining traditional sculpting principles with cutting-edge game engine technology.
+          </p>
+          <p class="text-[rgba(242,237,228,0.6)] leading-relaxed mb-10">
+            My work bridges the gap between high-fidelity art and performance-optimized assets, ensuring every character is both visually stunning and gameplay-ready.
+          </p>
+          <div class="flex items-center gap-4">
+            <div class="w-2 h-2 rounded-full bg-[#4CAF50]"></div>
+            <p class="font-mono-custom text-xs tracking-widest uppercase text-[rgba(242,237,228,0.5)]">Available for new projects</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- PORTFOLIO -->
+  <section id="portfolio" class="py-32 relative border-t border-[rgba(242,237,228,0.06)]">
+    <div class="max-w-7xl mx-auto px-8">
+      <div class="flex items-end justify-between mb-16 reveal">
+        <div>
+          <p class="section-label mb-4">/ Portfolio</p>
+          <h2 class="font-display" style="font-size: clamp(40px, 5vw, 72px);">SELECTED WORKS</h2>
+        </div>
+        <div class="hidden md:flex gap-3">
+          <button class="font-mono-custom text-xs tracking-widest uppercase text-[#C94A2D] border border-[#C94A2D] px-4 py-2">All Work</button>
+          <button class="font-mono-custom text-xs tracking-widest uppercase text-[rgba(242,237,228,0.4)] border border-[rgba(242,237,228,0.12)] px-4 py-2 hover:border-[rgba(242,237,228,0.3)] transition-colors">Characters</button>
+          <button class="font-mono-custom text-xs tracking-widest uppercase text-[rgba(242,237,228,0.4)] border border-[rgba(242,237,228,0.12)] px-4 py-2 hover:border-[rgba(242,237,228,0.3)] transition-colors">Environments</button>
+          <button class="font-mono-custom text-xs tracking-widest uppercase text-[rgba(242,237,228,0.4)] border border-[rgba(242,237,228,0.12)] px-4 py-2 hover:border-[rgba(242,237,228,0.3)] transition-colors">Props</button>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-4">
+        <!-- Card 1 – featured large -->
+        <div class="md:col-span-2 portfolio-card rounded-none" style="height: 480px;">
+          <div style="width:100%;height:100%; background: linear-gradient(135deg, #1a1210 0%, #2a1a14 50%, #1a1210 100%); display:flex; align-items:center; justify-content:center;">
+            <div style="text-align:center; opacity:0.25;">
+              <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="40" cy="28" r="16" stroke="#F2EDE4" stroke-width="1.5"/>
+                <path d="M16 68c0-13.255 10.745-24 24-24s24 10.745 24 24" stroke="#F2EDE4" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="40" cy="28" r="6" fill="#F2EDE4" opacity="0.5"/>
+              </svg>
+              <p style="color:#F2EDE4; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.15em; text-transform:uppercase; margin-top:12px;">Character Placeholder</p>
+            </div>
+          </div>
+          <div class="overlay"></div>
+          <div class="absolute bottom-0 left-0 right-0 p-8">
+            <p class="font-mono-custom text-xs tracking-widest uppercase text-rust mb-2">Lead Character Artist</p>
+            <h3 class="font-display text-4xl mb-2">WARRIOR CHAMPION</h3>
+            <p class="text-[rgba(242,237,228,0.5)] text-sm">AAA — High Fidelity Character</p>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="portfolio-card rounded-none" style="height: 480px;">
+          <div style="width:100%;height:100%; background: linear-gradient(135deg, #101820 0%, #1a2830 100%); display:flex; align-items:center; justify-content:center;">
+            <div style="text-align:center; opacity:0.25;">
+              <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+                <rect x="8" y="8" width="20" height="20" stroke="#F2EDE4" stroke-width="1.5"/>
+                <rect x="36" y="8" width="20" height="20" stroke="#F2EDE4" stroke-width="1.5"/>
+                <rect x="8" y="36" width="20" height="20" stroke="#F2EDE4" stroke-width="1.5"/>
+                <rect x="36" y="36" width="20" height="20" stroke="#F2EDE4" stroke-width="1.5"/>
+              </svg>
+            </div>
+          </div>
+          <div class="overlay"></div>
+          <div class="absolute bottom-0 left-0 right-0 p-6">
+            <p class="font-mono-custom text-xs tracking-widest uppercase text-rust mb-2">Environment</p>
+            <h3 class="font-display text-3xl mb-1">TANUKI PON</h3>
+            <p class="text-[rgba(242,237,228,0.5)] text-sm">Unity Engine — Indie Game</p>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="portfolio-card rounded-none" style="height: 320px;">
+          <div style="width:100%;height:100%; background: linear-gradient(135deg, #181410 0%, #241c18 100%); display:flex; align-items:center; justify-content:center;">
+            <div style="text-align:center; opacity:0.2;">
+              <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+                <path d="M28 6L50 18V38L28 50L6 38V18L28 6Z" stroke="#F2EDE4" stroke-width="1.5"/>
+                <circle cx="28" cy="28" r="8" stroke="#F2EDE4" stroke-width="1.5"/>
+              </svg>
+            </div>
+          </div>
+          <div class="overlay"></div>
+          <div class="absolute bottom-0 left-0 right-0 p-6">
+            <p class="font-mono-custom text-xs tracking-widest uppercase text-rust mb-2">Props & Assets</p>
+            <h3 class="font-display text-2xl mb-1">ARMOR SET</h3>
+            <p class="text-[rgba(242,237,228,0.5)] text-sm">Unreal Engine 5</p>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="md:col-span-2 portfolio-card rounded-none" style="height: 320px;">
+          <div style="width:100%;height:100%; background: linear-gradient(135deg, #0e1418 0%, #182024 100%); display:flex; align-items:center; justify-content:center;">
+            <div style="text-align:center; opacity:0.2;">
+              <svg width="72" height="40" viewBox="0 0 72 40" fill="none">
+                <line x1="0" y1="20" x2="72" y2="20" stroke="#F2EDE4" stroke-width="1"/>
+                <circle cx="12" cy="20" r="4" stroke="#F2EDE4" stroke-width="1.5"/>
+                <circle cx="36" cy="10" r="4" stroke="#F2EDE4" stroke-width="1.5"/>
+                <circle cx="60" cy="28" r="4" stroke="#F2EDE4" stroke-width="1.5"/>
+              </svg>
+            </div>
+          </div>
+          <div class="overlay"></div>
+          <div class="absolute bottom-0 left-0 right-0 p-8">
+            <p class="font-mono-custom text-xs tracking-widest uppercase text-rust mb-2">Technical Breakdown</p>
+            <h3 class="font-display text-3xl mb-1">REAL-TIME PIPELINE</h3>
+            <p class="text-[rgba(242,237,228,0.5)] text-sm">From ZBrush to Unreal Engine 5</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRODUCTION PIPELINE -->
+  <section id="pipeline" class="py-32 relative border-t border-[rgba(242,237,228,0.06)]" style="background: rgba(242,237,228,0.015);">
+    <div class="max-w-7xl mx-auto px-8">
+      <div class="mb-16 reveal">
+        <p class="section-label mb-4">/ Production Pipeline</p>
+        <h2 class="font-display" style="font-size: clamp(40px, 5vw, 72px);">INDUSTRY-STANDARD<br/><span class="text-rust">WORKFLOW</span></h2>
+        <p class="text-[rgba(242,237,228,0.5)] mt-4 max-w-lg">From high-resolution sculpting to game-ready optimization.</p>
+      </div>
+
+      <div class="grid md:grid-cols-4 gap-4">
+        <div class="pipeline-step p-8 reveal" style="transition-delay:0s;">
+          <p class="font-mono-custom text-xs text-rust mb-6">01</p>
+          <p class="font-display text-4xl mb-2">HIGH<br/>POLY</p>
+          <div class="skill-bar my-4"><div class="skill-bar-fill" style="width:100%;"></div></div>
+          <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)] mb-4">10M poly sculpt</p>
+          <p class="text-[rgba(242,237,228,0.5)] text-sm leading-relaxed">ZBrush sculpt capturing every surface detail</p>
+        </div>
+        <div class="pipeline-step p-8 reveal" style="transition-delay:0.1s;">
+          <p class="font-mono-custom text-xs text-rust mb-6">02</p>
+          <p class="font-display text-4xl mb-2">RETOPO<br/>LOGY</p>
+          <div class="skill-bar my-4"><div class="skill-bar-fill" style="width:100%;"></div></div>
+          <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)] mb-4">45K Tris · Quad-based</p>
+          <p class="text-[rgba(242,237,228,0.5)] text-sm leading-relaxed">Clean topology optimized for animation and edge flow</p>
+        </div>
+        <div class="pipeline-step p-8 reveal" style="transition-delay:0.2s;">
+          <p class="font-mono-custom text-xs text-rust mb-6">03</p>
+          <p class="font-display text-4xl mb-2">UV<br/>LAYOUT</p>
+          <div class="skill-bar my-4"><div class="skill-bar-fill" style="width:100%;"></div></div>
+          <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)] mb-4">Efficient texture space</p>
+          <p class="text-[rgba(242,237,228,0.5)] text-sm leading-relaxed">Maximized texel density for best texture resolution</p>
+        </div>
+        <div class="pipeline-step p-8 reveal" style="transition-delay:0.3s;">
+          <p class="font-mono-custom text-xs text-rust mb-6">04</p>
+          <p class="font-display text-4xl mb-2">TEXTURE<br/>MAPS</p>
+          <div class="skill-bar my-4"><div class="skill-bar-fill" style="width:100%;"></div></div>
+          <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)] mb-4">4K Maps · PBR</p>
+          <p class="text-[rgba(242,237,228,0.5)] text-sm leading-relaxed">Albedo, normal, roughness and metalness maps</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAMES -->
+  <section class="py-24 border-t border-[rgba(242,237,228,0.06)]">
+    <div class="max-w-7xl mx-auto px-8">
+      <div class="grid md:grid-cols-2 gap-16 items-center">
+        <div class="reveal">
+          <p class="section-label mb-4">/ Games Desenvolvidos</p>
+          <h2 class="font-display mb-6" style="font-size: clamp(36px, 4vw, 60px);">PROJETOS<br/>COMERCIAIS<br/>& <span class="text-rust">INDIES</span></h2>
+        </div>
+        <div class="reveal" style="transition-delay:0.15s;">
+          <div class="border border-[rgba(242,237,228,0.08)] p-8 hover:border-[rgba(201,74,45,0.3)] transition-colors">
+            <div class="flex items-start gap-6 mb-6">
+              <div style="width:56px;height:56px;background:rgba(201,74,45,0.1);border:1px solid rgba(201,74,45,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M12 3L3 8.5V15.5L12 21L21 15.5V8.5L12 3Z" stroke="#C94A2D" stroke-width="1.5"/><circle cx="12" cy="12" r="3" stroke="#C94A2D" stroke-width="1.5"/></svg>
+              </div>
+              <div>
+                <p class="font-mono-custom text-xs tracking-widest uppercase text-rust mb-1">Unity Engine</p>
+                <h3 class="font-display text-3xl mb-1">TANUKI: PON'S SUMMER</h3>
+                <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)] tracking-wide">Lead Character Artist</p>
+              </div>
+            </div>
+            <p class="text-[rgba(242,237,228,0.55)] text-sm leading-relaxed">
+              The Tanuki Festival is just a month away, and the shrine is in disrepair. Follow Pon, a well-meaning, if a bit lazy Tanuki with a part-time job at the Post Office, as he works to restore the shrine before summer ends.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TOOLS -->
+  <section id="tools" class="py-32 border-t border-[rgba(242,237,228,0.06)]">
+    <div class="max-w-7xl mx-auto px-8">
+      <div class="mb-16 reveal">
+        <p class="section-label mb-4">/ Technology Stack</p>
+        <h2 class="font-display" style="font-size: clamp(40px, 5vw, 72px);">INDUSTRY<br/><span class="text-rust">STANDARD</span> TOOLS</h2>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-px bg-[rgba(242,237,228,0.06)]" id="skills-grid">
+        <!-- ZBrush -->
+        <div class="tool-chip bg-[#0D0D0D] p-8 reveal">
+          <div class="flex justify-between items-start mb-6">
+            <div>
+              <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)] mb-1">01 · v2026</p>
+              <h3 class="font-display text-3xl">ZBRUSH</h3>
+            </div>
+            <span class="font-mono-custom text-xs text-rust">Sculpting</span>
+          </div>
+          <div class="skill-bar mb-2">
+            <div class="skill-bar-fill" data-width="98"></div>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)]">Proficiency</span>
+            <span class="font-mono-custom text-xs text-[#F2EDE4]">98%</span>
+          </div>
+        </div>
+
+        <!-- Maya -->
+        <div class="tool-chip bg-[#0D0D0D] p-8 reveal" style="transition-delay:0.05s;">
+          <div class="flex justify-between items-start mb-6">
+            <div>
+              <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)] mb-1">02 · v2026</p>
+              <h3 class="font-display text-3xl">MAYA</h3>
+            </div>
+            <span class="font-mono-custom text-xs text-rust">Modeling & Rigging</span>
+          </div>
+          <div class="skill-bar mb-2">
+            <div class="skill-bar-fill" data-width="95"></div>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)]">Proficiency</span>
+            <span class="font-mono-custom text-xs text-[#F2EDE4]">95%</span>
+          </div>
+        </div>
+
+        <!-- Substance 3D -->
+        <div class="tool-chip bg-[#0D0D0D] p-8 reveal" style="transition-delay:0.1s;">
+          <div class="flex justify-between items-start mb-6">
+            <div>
+              <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)] mb-1">03 · v2026</p>
+              <h3 class="font-display text-3xl">SUBSTANCE 3D</h3>
+            </div>
+            <span class="font-mono-custom text-xs text-rust">Texturing</span>
+          </div>
+          <div class="skill-bar mb-2">
+            <div class="skill-bar-fill" data-width="92"></div>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)]">Proficiency</span>
+            <span class="font-mono-custom text-xs text-[#F2EDE4]">92%</span>
+          </div>
+        </div>
+
+        <!-- Unreal Engine 5 -->
+        <div class="tool-chip bg-[#0D0D0D] p-8 reveal" style="transition-delay:0.15s;">
+          <div class="flex justify-between items-start mb-6">
+            <div>
+              <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)] mb-1">04 · v2026</p>
+              <h3 class="font-display text-3xl">UNREAL ENGINE 5</h3>
+            </div>
+            <span class="font-mono-custom text-xs text-rust">Real-time Engine</span>
+          </div>
+          <div class="skill-bar mb-2">
+            <div class="skill-bar-fill" data-width="90"></div>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)]">Status</span>
+            <span class="font-mono-custom text-xs text-[#4CAF50]">ACTIVE</span>
+          </div>
+        </div>
+
+        <!-- Marvelous Designer -->
+        <div class="tool-chip bg-[#0D0D0D] p-8 reveal" style="transition-delay:0.2s;">
+          <div class="flex justify-between items-start mb-6">
+            <div>
+              <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)] mb-1">05 · v2026</p>
+              <h3 class="font-display text-3xl">MARVELOUS<br/>DESIGNER</h3>
+            </div>
+            <span class="font-mono-custom text-xs text-rust">Cloth Sim</span>
+          </div>
+          <div class="skill-bar mb-2">
+            <div class="skill-bar-fill" data-width="88"></div>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)]">Proficiency</span>
+            <span class="font-mono-custom text-xs text-[#F2EDE4]">88%</span>
+          </div>
+        </div>
+
+        <!-- Blender -->
+        <div class="tool-chip bg-[#0D0D0D] p-8 reveal" style="transition-delay:0.25s;">
+          <div class="flex justify-between items-start mb-6">
+            <div>
+              <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)] mb-1">06 · v2026</p>
+              <h3 class="font-display text-3xl">BLENDER</h3>
+            </div>
+            <span class="font-mono-custom text-xs text-rust">All-in-One Suite</span>
+          </div>
+          <div class="skill-bar mb-2">
+            <div class="skill-bar-fill" data-width="85"></div>
+          </div>
+          <div class="flex justify-between">
+            <span class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)]">Proficiency</span>
+            <span class="font-mono-custom text-xs text-[#F2EDE4]">85%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-40 relative border-t border-[rgba(242,237,228,0.06)]" style="background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(201,74,45,0.1) 0%, transparent 70%);">
+    <div class="max-w-5xl mx-auto px-8 text-center reveal">
+      <p class="section-label mb-8">/ Let's Create Together</p>
+      <h2 class="font-display leading-none mb-8" style="font-size: clamp(56px, 9vw, 130px); line-height: 0.88;">
+        READY TO<br/>
+        BRING YOUR<br/>
+        <span class="text-rust">VISION</span><br/>
+        TO LIFE?
+      </h2>
+      <p class="text-[rgba(242,237,228,0.5)] text-xl mb-14 max-w-lg mx-auto" style="font-weight:300;">
+        Available for AAA studios, indie games, and ambitious projects that demand next-generation character art.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-5 justify-center items-center">
+        <a href="#contact" class="inline-flex items-center gap-3 bg-[#C94A2D] text-[#F2EDE4] font-mono-custom text-xs tracking-widest uppercase px-12 py-5 hover:bg-[#B03D22] transition-colors">
+          Start a Project
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#portfolio" class="font-mono-custom text-xs tracking-widest uppercase border border-[rgba(242,237,228,0.2)] text-[rgba(242,237,228,0.7)] px-12 py-5 hover:border-[rgba(242,237,228,0.5)] hover:text-[#F2EDE4] transition-colors">
+          View Full Portfolio
+        </a>
+      </div>
+      <div class="flex items-center justify-center gap-8 mt-12">
+        <div class="flex items-center gap-2">
+          <div class="w-1.5 h-1.5 rounded-full bg-[#4CAF50]"></div>
+          <span class="font-mono-custom text-xs text-[rgba(242,237,228,0.4)]">Available Now</span>
+        </div>
+        <div class="w-px h-4 bg-[rgba(242,237,228,0.1)]"></div>
+        <span class="font-mono-custom text-xs text-[rgba(242,237,228,0.4)]">Response within 24h</span>
+        <div class="w-px h-4 bg-[rgba(242,237,228,0.1)]"></div>
+        <span class="font-mono-custom text-xs text-[rgba(242,237,228,0.4)]">8+ Years Experience</span>
+        <div class="w-px h-4 bg-[rgba(242,237,228,0.1)]"></div>
+        <span class="font-mono-custom text-xs text-[rgba(242,237,228,0.4)]">AAA Ready</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT / FOOTER -->
+  <footer id="contact" class="py-20 border-t border-[rgba(242,237,228,0.06)]">
+    <div class="max-w-7xl mx-auto px-8">
+      <div class="grid md:grid-cols-3 gap-16 mb-20">
+        <div>
+          <p class="font-display text-5xl mb-4">LET'S<br/>CONNECT</p>
+          <p class="text-[rgba(242,237,228,0.4)] text-sm leading-relaxed">Available for freelance projects and studio collaborations worldwide.</p>
+        </div>
+        <div>
+          <p class="section-label mb-6">Contact</p>
+          <div class="space-y-4">
+            <div>
+              <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)] mb-1 tracking-widest uppercase">Email</p>
+              <a href="mailto:contact@3dartist.com" class="contact-link text-[#F2EDE4] font-mono-custom text-sm">contact@3dartist.com</a>
+            </div>
+            <div>
+              <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.3)] mb-1 tracking-widest uppercase">Timezone</p>
+              <p class="font-mono-custom text-sm text-[rgba(242,237,228,0.6)]">UTC-3 · Worldwide Remote</p>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="section-label mb-6">Social</p>
+          <div class="space-y-3">
+            <a href="#" class="flex items-center justify-between group">
+              <span class="contact-link text-[rgba(242,237,228,0.6)] text-sm font-mono-custom">ArtStation</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="opacity-0 group-hover:opacity-100 transition-opacity"><path d="M2 12L12 2M12 2H6M12 2v6" stroke="#C94A2D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a href="#" class="flex items-center justify-between group">
+              <span class="contact-link text-[rgba(242,237,228,0.6)] text-sm font-mono-custom">Instagram</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="opacity-0 group-hover:opacity-100 transition-opacity"><path d="M2 12L12 2M12 2H6M12 2v6" stroke="#C94A2D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a href="#" class="flex items-center justify-between group">
+              <span class="contact-link text-[rgba(242,237,228,0.6)] text-sm font-mono-custom">LinkedIn</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="opacity-0 group-hover:opacity-100 transition-opacity"><path d="M2 12L12 2M12 2H6M12 2v6" stroke="#C94A2D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a href="#" class="flex items-center justify-between group">
+              <span class="contact-link text-[rgba(242,237,228,0.6)] text-sm font-mono-custom">Twitter / X</span>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" class="opacity-0 group-hover:opacity-100 transition-opacity"><path d="M2 12L12 2M12 2H6M12 2v6" stroke="#C94A2D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="border-t border-[rgba(242,237,228,0.06)] pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.25)]">© 2026 — All rights reserved</p>
+        <a href="#" class="font-display text-2xl text-[rgba(242,237,228,0.15)] hover:text-[rgba(242,237,228,0.4)] transition-colors">EMANOEL</a>
+        <p class="font-mono-custom text-xs text-[rgba(242,237,228,0.25)]">Next-Gen Character Artist</p>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 60) {
+        navbar.style.padding = '14px 0';
+        navbar.style.background = 'rgba(13,13,13,0.95)';
+        navbar.style.backdropFilter = 'blur(20px)';
+        navbar.style.borderBottom = '1px solid rgba(242,237,228,0.06)';
+      } else {
+        navbar.style.padding = '28px 0';
+        navbar.style.background = 'transparent';
+        navbar.style.backdropFilter = 'none';
+        navbar.style.borderBottom = 'none';
+      }
+    });
+
+    // Intersection Observer for reveal animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          
+          // Animate skill bars if inside visible element
+          const bars = entry.target.querySelectorAll('.skill-bar-fill');
+          bars.forEach(bar => {
+            const w = bar.getAttribute('data-width') || '100';
+            bar.style.transform = `scaleX(${parseInt(w) / 100})`;
+          });
+          
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Animate skill bars that are direct children of observed elements
+    const skillObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const bar = entry.target.querySelector('.skill-bar-fill');
+          if (bar) {
+            const w = bar.getAttribute('data-width') || '100';
+            setTimeout(() => {
+              bar.style.transform = `scaleX(${parseInt(w) / 100})`;
+            }, 200);
+          }
+          skillObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+
+    document.querySelectorAll('.tool-chip').forEach(el => skillObserver.observe(el));
+  </script>
+</body>
+</html>
